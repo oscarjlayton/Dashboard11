@@ -1,0 +1,281 @@
+---
+title: "CARRERA DE LA LUZ 2022"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows        #se coloca la orientacion
+    vertical_layout: fill   #para qconfigurar lo alto en pantalla
+    theme:  flatly  #spacelab   #yeti #simplex #united #spacelab#cerulean #spacelab
+    #theme:
+    #  version: 4
+    #  bootswatch: sketchy    #sketchy
+---
+
+```{r librerias}
+#Con  --> ctl + alt + i   se agrega un nuevo chunk
+# Con el simbolo # se crean páginas
+# como está configurado por filas  una fila se coloca con doble numeral ##
+# como está configurado por filas  una columna se coloca con triple numeral ###
+# el tamaño de las columnas se realiza con un tamaño hasta 12 y se realiza con {data-width=4} {data-width=8}
+# Para crear tap se debe colocar en la fila el decorador {.tabset} para que automaticamente todas las columnas sean tab
+# Con  {data-icon=fa-ruler} coloco iconos en los indices de pagina
+#para iconos https://fontawesome.com/v4/icons/
+
+library(flexdashboard)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(tm)
+library(wordcloud)
+require(RColorBrewer)
+```
+
+```{r datasets}
+library(paqueteMET)     # activar paqueteMET
+data("CarreraLuz22")    # cargar la dataset
+CarreraLuz22$timerun_minute <- CarreraLuz22$timerun/60 
+CarreraLuz22$origen[CarreraLuz22$origen == "Santander De Quilichao"]="Stdr de Q"
+CarreraLuz22$origen[CarreraLuz22$origen == "Buenaventura"]="Buena/ra"
+CarreraLuz22$origen[CarreraLuz22$origen == "Paz De Ariporo"]="P/Ariporo"
+CarreraLuz22$origen[CarreraLuz22$origen == "Puerto Tejada"]="Pto/Tjada"
+CarreraLuz22$origen[CarreraLuz22$origen == "Bogota"]="Bogotá"
+CarreraLuz22$origen[CarreraLuz22$origen == "Bogota D.c"]="Bogotá"
+CarreraLuz22$origen[CarreraLuz22$origen == "Jamundi"]="Jamundí"
+CarreraLuz22$origen[CarreraLuz22$origen == "Popayán"]="Popayan"
+CarreraLuz22$origen[CarreraLuz22$origen == "Tuluá"]="Tulua"
+
+library(readxl)
+#CiuXNed <- read_excel("Muestra0.xlsx")
+#head(CiuXNed)
+
+#desLey<-c(0.512,0.488)
+#names(desLey)<-c("Taiwanese", "Non Taiwanese")
+#barplot(desLey,col = c("coral","coral3"), ylim = c(0,1), main="NACIONALIDAD",legend = desLey)
+```
+
+```{r kpis}
+
+require(dplyr)
+metricas1 <- CarreraLuz22 %>% summarise(edad_maxima = max(edad),
+                                        edad_promedio = mean(edad),
+                                  edad_minima= min(edad),
+                                  cantidad_participantes= length(id)
+                                        )
+
+
+tab1 <- table(CarreraLuz22$sex)   # Proporcion de hombres y mujeres
+a<-prop.table(tab1)
+#a[1]  #Proporcion de hombres
+#a[2]  #proporcion de mujeres
+
+tasa_hombres <- round(as.numeric(a[1])*100, 2)
+tasa_mujeres <- round(as.numeric(a[2])*100, 2)
+
+
+
+#metricas1 <- CiuXNed %>% summarise(sin_educacion = mean(Sin_edu), 
+#                                  Primaria_ = var(Primaria),
+#                                  Secundaria_ = mean(Secundaria),
+#                                  Tecnico_ = mean(Tecnico)
+#                                  ) 
+
+
+```
+
+# metricas Demográficas {data-icon="fa-bar-chart"}
+
+## 
+
+### Cantidad de participantes
+
+```{r}
+valueBox(metricas1$cantidad_participantes, icon='fa-check-circle-o', color="#C0D5F7") #para crear las etiquetas de medidas de power bi enforma de ojo
+```
+
+### Edad mínima de los parcitipantes
+
+```{r}
+valueBox(metricas1$edad_minima,icon='fa-child', color="#C0D5F7") #para crear las etiquetas de medidas de power bi enforma de ojo
+```
+
+### Edad máxima de los parcitipantes
+
+```{r}  
+valueBox(metricas1$edad_maxima, icon='fa-user-circle-o', color="#C0D5F7") #para crear las etiquetas de medidas de power bi enforma de ojo
+```
+
+### Edad Promedio de participantes.
+
+```{r}
+valueBox(round(metricas1$edad_promedio,2), icon='fa-user-circle-o', color="#C0D5F7") #para crear las etiquetas de medidas de power bi enforma de ojo
+```
+
+### Máxima Velocidad.
+```{r}
+valueBox(value =paste(round(10070/min(CarreraLuz22$timerun),2),"m/s"),  
+         icon = "fa-bolt", color = "#C0D5F7")
+```
+
+### Mínima Velocidad.
+```{r}
+valueBox(value =paste(round(10070/max(CarreraLuz22$timerun),2),"m/s"),  
+         icon = "fa-minus", color = "#C0D5F7")
+```
+
+
+------------------------------------------------------------------------
+
+## 
+
+### Proporción de mujeres en carrera.
+
+```{r}
+gauge(tasa_mujeres, 
+      min=0,          #valor minimo que se quiere mostrar
+      max=100,        #valor maximo que se quiere mostrar
+      symbol = '%', 
+      #gaugesectors cambia el color dependiendo del porcentaje 
+      gaugeSectors(success=c(50,100),    #excelente si está entre 80 y 1oo
+                   warning = c(10,50),   #si está entre 40 y 79 mas o menos
+                   danger=c(0,10))        #Si está entre 0 y 39 peligro
+)
+```
+
+### Proporción de hombres en carrera.
+
+```{r}
+gauge(tasa_hombres, 
+      min=0,          #valor minimo que se quiere mostrar
+      max=100,        #valor maximo que se quiere mostrar
+      symbol = '%', 
+      #gaugesectors cambia el color dependiendo del porcentaje 
+      gaugeSectors(success=c(50,100),    #excelente si está entre 80 y 1oo
+                   warning = c(10,50),   #si está entre 40 y 79 mas o menos
+                   danger=c(0,10))        #Si está entre 0 y 39 peligro
+)
+```
+
+### Distancia recorrida.
+
+```{r}
+valueBox(value = paste(10.07,"Km"), #ud1$min, 
+         icon='fa fa-road', 
+         color = "#76D7C4")
+```
+
+### Tiempo promedio
+
+```{r}
+valueBox(value = paste(round(mean(CarreraLuz22$timerun)/60,2),"Minutos"), #ud1$min, 
+         icon = "fa-check", 
+         color = "#76D7C4")  ##0EB0C6
+```
+
+## 
+
+### Proporción de atletas por categoría.
+
+```{r}
+library(plotly)
+x<- data.frame(table(CarreraLuz22$categoria))  
+colors <- c('#07271D', '#164B39', '#108F64', '#4EF9C0', '#AFF7DF')  #rgb(128,133,133)
+
+fig <- plot_ly(x, labels = ~Var1, values = ~Freq, type = 'pie',
+               textposition = 'inside',
+               textinfo = 'label+percent',
+               insidetextfont = list(color = '#FFFFFF'),
+               hoverinfo = 'text',
+               text = ~paste('#', Freq, 'Corredores'),
+               marker = list(colors = colors,
+                             line = list(color = '#FFFFFF', width = 1)),
+               #The 'pull' attribute can also be used to create space between the sectors
+               showlegend = FALSE)
+fig <- fig %>% layout(xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                      yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+
+fig
+
+#library(plotly)
+#library(ggplot2)
+#fig <- plot_ly(CarreraLuz22, y = ~edad, color = ~categoria, type = "box")  #,boxpoints = "all", jitter = 0.001,pointpos = -4.8
+#fig  %>% layout(title = "Ditribución de las edades en cada categoria")  
+#fig
+```
+
+### Ditribución de las edades por categoria/sexo
+
+```{r}
+fig <- plot_ly(CarreraLuz22, x= ~categoria, y = ~edad, color = ~sex, type = "box")  #,boxpoints = "all", jitter = 0.001,pointpos = -4.8
+fig <- fig  %>% layout(boxmode = "group") #%>% layout(title = "Ditribución de las edades en cada categoria/sexo") 
+fig
+```
+
+# Tiempos de Carreras {data-icon="fa-clock-o"}
+
+
+##  {.tabset}
+
+
+### Tiempo de carrera por origen/sexo (minutos) 
+```{r}
+
+fig <- plot_ly(CarreraLuz22, x= ~origen, y = ~timerun_minute, color = ~sex, type = "box")  #,boxpoints = "all", jitter = 0.001,pointpos = -4.8
+fig <- fig  %>%  layout(boxmode = "group")  #layout(title = "Ditribución de las edades en cada categoria/sexo") %>%
+fig 
+
+```
+
+
+### Tiempos de carrera entre Hombres y Mujeres
+
+```{r}
+require(ggplot2)
+p<-ggplot(data=CarreraLuz22, aes(edad, timerun_minute)) +
+  geom_point(colour = '#76D7C4') + # los puntos
+  stat_smooth() + # lneas y bandas de suavizado (smooth)
+  facet_wrap(~ sex) + xlim(c(15,76))    # las especies van en grÃ¡ficos distintos
+p
+```
+
+
+### Tabla de frecuencia
+```{r}
+xtab2 <- xtabs(~ sex + categoria + nacionalidad, CarreraLuz22)
+#xtab2
+## flat table
+ftable(xtab2)
+```
+
+
+
+## 
+
+### Tiempos de carreras por categoría/sexo (en minutos)
+
+```{r}
+CarreraLuz22$timerun_minute <- CarreraLuz22$timerun/60 
+
+fig <- plot_ly(CarreraLuz22, x= ~categoria, y = ~timerun_minute, color = ~sex, type = "box")  #,boxpoints = "all", jitter = 0.001,pointpos = -4.8
+fig <- fig  %>%  layout(boxmode = "group")  #layout(title = "Ditribución de las edades en cada categoria/sexo") %>%
+fig 
+```
+
+### Tiempos de carreras por Nacionalidad/sexo (en minutos)
+```{r}
+CarreraLuz22$timerun_minute <- CarreraLuz22$timerun/60 
+
+fig <- plot_ly(CarreraLuz22, x= ~nacionalidad, y = ~timerun_minute, color = ~sex, type = "box")  #,boxpoints = "all", jitter = 0.001,pointpos = -4.8
+fig <- fig  %>%  layout(boxmode = "group")  #layout(title = "Ditribución de las edades en cada categoria/sexo") %>%
+fig 
+```
+
+
+# Datos {data-icon="fa-database"}
+
+### Datos Carrera de la Luz 2022
+
+```{r}
+library(DT)
+datatable(CarreraLuz22 , class = 'cell-border stripe',
+          rownames = FALSE,
+          colnames = c('indice','Sexo', 'Ciudad Origen', 'Tiempo en carrera', 'Categoria','Nacionalidad', 'Tiempo en carrera (Min)'))
+```
